@@ -50,21 +50,22 @@ func (c *UserController) generateTokens(u *models.User) (string, string, error) 
 }
 
 func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
-	var errorResponse = ErrorResponse{
-		Code:    http.StatusInternalServerError,
-		Message: "Internal Server Error",
-	}
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		returnErrorResponse(w, r, errorResponse)
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 		return
 	}
 	var u map[string]string
 	err = json.Unmarshal(body, &u)
 	if err != nil {
-		returnErrorResponse(w, r, errorResponse)
-		return
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 	}
 	login, ok := u["login"]
 	if !ok {
@@ -84,7 +85,10 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	user, err := c.storage.FindUserByNameAndPassword(login, password)
 	if err != nil {
-		returnErrorResponse(w, r, errorResponse)
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 		return
 	}
 	if user == nil {
@@ -94,14 +98,20 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	accessTokenString, _ := c.tm.GenerateAccessToken(user)
-	if accessTokenString == "" {
-		returnErrorResponse(w, r, errorResponse)
+	accessTokenString, err := c.tm.GenerateAccessToken(user)
+	if err != nil {
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 		return
 	}
-	refreshTokenString, _ := c.tm.GenerateRefreshToken(user)
-	if refreshTokenString == "" {
-		returnErrorResponse(w, r, errorResponse)
+	refreshTokenString, err := c.tm.GenerateRefreshToken(user)
+	if err != nil {
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 		return
 	}
 	var successResponse = SuccessResponse{
@@ -114,7 +124,10 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	successJSONResponse, err := json.Marshal(successResponse)
 	if err != nil {
-		returnErrorResponse(w, r, errorResponse)
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 	}
 	w.Header().Set("Content-Type", "application/json")
 	http.SetCookie(w, &http.Cookie{
@@ -131,17 +144,16 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
-	var errorResponse = ErrorResponse{
-		Code:    http.StatusInternalServerError,
-		Message: "Internal Server Error",
-	}
 	var successResponse = SuccessResponse{
 		Code:    http.StatusOK,
 		Message: "You have logged out",
 	}
 	successJSONResponse, err := json.Marshal(successResponse)
 	if err != nil {
-		returnErrorResponse(w, r, errorResponse)
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -172,7 +184,10 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 	}
 	userName, err := c.tm.ParseRefreshToken(refreshToken.Value)
 	if err != nil {
-		returnErrorResponse(w, r, errorResponse)
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 		return
 	}
 	userInfo, _ := c.storage.FindUserByName(userName)
@@ -219,30 +234,11 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 }
 
 func (c *UserController) UserInfo(w http.ResponseWriter, r *http.Request) {
-	var errorResponse = ErrorResponse{
-		Code:    http.StatusInternalServerError,
-		Message: "Internal Server Error",
-	}
-	accessCookie, err := r.Cookie("access_token")
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusUnauthorized,
-			Message: err.Error(),
-		})
-		return
-	}
-	userName, err := c.tm.ParseAccessToken(accessCookie.Value)
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusUnauthorized,
-			Message: err.Error(),
-		})
-		return
-	}
-	userInfo, _ := c.storage.FindUserByName(userName)
+	profile := r.Context().Value("profile").(MiddlewareProfile)
+	userInfo, _ := c.storage.FindUserByName(profile.UserName)
 	if userInfo == nil {
 		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusOK,
+			Code:    http.StatusInternalServerError,
 			Message: "User not found",
 		})
 		return
@@ -257,7 +253,10 @@ func (c *UserController) UserInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	successJSONResponse, err := json.Marshal(successResponse)
 	if err != nil {
-		returnErrorResponse(w, r, errorResponse)
+		returnErrorResponse(w, r, ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: err.Error(),
+		})
 		return
 	}
 	w.Write(successJSONResponse)

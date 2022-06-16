@@ -34,12 +34,17 @@ func main() {
 	storage.Init()
 	userCtrl := handlers.NewUserController(storage, tm, config)
 
+	mw := handlers.NewMiddleware(tm)
+
 	router := mux.NewRouter()
 
 	router.HandleFunc("/login", userCtrl.UserLogin).Methods("POST")
 	router.HandleFunc("/logout", userCtrl.UserLogout).Methods("POST")
+
 	router.HandleFunc("/refresh-token", userCtrl.UserRefreshToken).Methods("POST")
 	router.HandleFunc("/i", userCtrl.UserInfo).Methods("GET")
+
+	router.Use(mw.Logging)
 
 	err = http.ListenAndServe(config.BindAddr, router)
 	log.Fatal(err)
