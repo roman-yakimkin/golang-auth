@@ -45,29 +45,29 @@ func (s *Storage) Init() {
 	//psw3, _ := s.pm.EncodePassword("password3")
 }
 
-func (s *Storage) FindUserById(uid int) (*models.User, error) {
+func (s *Storage) FindUserById(uid int) *models.User {
 	for _, u := range s.users {
 		if uid == u.ID {
-			return &u, nil
+			return &u
 		}
 	}
-	return nil, nil
+	return nil
 }
 
-func (s *Storage) FindUserByName(username string) (*models.User, error) {
+func (s *Storage) FindUserByName(username string) *models.User {
 	for _, u := range s.users {
 		if username == u.Username {
-			return &u, nil
+			return &u
 		}
 	}
-	return nil, nil
+	return nil
 }
 
-func (s *Storage) FindUserByNameAndPassword(username string, password string) (*models.User, error) {
+func (s *Storage) FindUserByNameAndPassword(username string, password string) *models.User {
 	for _, u := range s.users {
 		if (u.Username == username) && s.pm.ComparePasswords(u.Password, password) {
-			return &u, nil
+			return &u
 		}
 	}
-	return nil, nil
+	return nil
 }
