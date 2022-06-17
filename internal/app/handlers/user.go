@@ -83,14 +83,7 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user, err := c.storage.FindUserByNameAndPassword(login, password)
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-		return
-	}
+	user := c.storage.FindUserByNameAndPassword(login, password)
 	if user == nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusUnauthorized,
@@ -192,7 +185,7 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	userInfo, _ := c.storage.FindUserByName(userName)
+	userInfo := c.storage.FindUserByName(userName)
 	if userInfo == nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusInternalServerError,
@@ -237,7 +230,7 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 
 func (c *UserController) UserInfo(w http.ResponseWriter, r *http.Request) {
 	profile := r.Context().Value("profile").(MiddlewareProfile)
-	userInfo, _ := c.storage.FindUserByName(profile.UserName)
+	userInfo := c.storage.FindUserByName(profile.UserName)
 	if userInfo == nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusInternalServerError,
