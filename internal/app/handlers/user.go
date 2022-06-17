@@ -140,6 +140,7 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		Value:   refreshTokenString,
 		Expires: tokenmanager.GetExpireTime(c.config.JWTRefreshTokenLifeTime),
 	})
+	doRedirect(w, r)
 	w.Write(successJSONResponse)
 }
 
@@ -157,6 +158,7 @@ func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	doRedirect(w, r)
 	w.Write(successJSONResponse)
 }
 
