@@ -82,7 +82,7 @@ func (s *Storage) FindUserByNameAndPassword(username string, password string) *m
 	return nil
 }
 
-func (s *Storage) MemorizedRefreshTokenIfExpired(token string) {
+func (s *Storage) MemorizeRefreshTokenIfExpired(token string) {
 	claims, err := s.tm.ParseRefreshToken(token)
 	if err != nil {
 		return
