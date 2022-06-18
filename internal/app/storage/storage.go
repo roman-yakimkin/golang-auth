@@ -7,4 +7,7 @@ type Storage interface {
 	FindUserById(int) *models.User
 	FindUserByName(string) *models.User
 	FindUserByNameAndPassword(string, string) *models.User
+	MemorizeRefreshTokenIfExpired(token string)
+	IsRefreshTokenExpired(token string) bool
+	CleanExpiredRefreshTokens()
 }

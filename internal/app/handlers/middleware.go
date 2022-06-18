@@ -9,7 +9,6 @@ import (
 
 var noLoggingMiddlewarePaths = []string{
 	"/login",
-	"/logout",
 }
 
 type MiddlewareProfile struct {
@@ -37,7 +36,7 @@ func (mw *Middleware) Logging(next http.Handler) http.Handler {
 				})
 				return
 			}
-			userName, err := mw.tm.ParseAccessToken(accessCookie.Value)
+			claims, err := mw.tm.ParseAccessToken(accessCookie.Value)
 			if err != nil {
 				returnErrorResponse(w, r, ErrorResponse{
 					Code:    http.StatusUnauthorized,
@@ -45,7 +44,7 @@ func (mw *Middleware) Logging(next http.Handler) http.Handler {
 				})
 				return
 			}
-			if userName == "" {
+			if claims.Username == "" {
 				returnErrorResponse(w, r, ErrorResponse{
 					Code:    http.StatusUnauthorized,
 					Message: tokenmanager.ErrInvalidUserName.Error(),
@@ -54,7 +53,7 @@ func (mw *Middleware) Logging(next http.Handler) http.Handler {
 			}
 			ctx := r.Context()
 			r = r.WithContext(context.WithValue(ctx, "profile", MiddlewareProfile{
-				UserName: userName,
+				UserName: claims.Username,
 			}))
 		}
 		next.ServeHTTP(w, r)

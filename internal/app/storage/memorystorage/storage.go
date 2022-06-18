@@ -4,19 +4,29 @@ import (
 	"auth/internal/app/models"
 	"auth/internal/app/services/configmanager"
 	"auth/internal/app/services/passwordmanager"
+	"auth/internal/app/services/tokenmanager"
+	"time"
 )
 
-type Storage struct {
-	roles  []models.Role
-	users  []models.User
-	pm     passwordmanager.PasswordManager
-	config *configmanager.Config
+type expiredRefreshToken struct {
+	token   string
+	expired int64
 }
 
-func NewStorage(pm passwordmanager.PasswordManager, config *configmanager.Config) *Storage {
+type Storage struct {
+	roles     []models.Role
+	users     []models.User
+	expiredRT []expiredRefreshToken
+	pm        passwordmanager.PasswordManager
+	config    *configmanager.Config
+	tm        tokenmanager.TokenManager
+}
+
+func NewStorage(pm passwordmanager.PasswordManager, config *configmanager.Config, tm tokenmanager.TokenManager) *Storage {
 	return &Storage{
 		pm:     pm,
 		config: config,
+		tm:     tm,
 	}
 }
 
@@ -70,4 +80,39 @@ func (s *Storage) FindUserByNameAndPassword(username string, password string) *m
 		}
 	}
 	return nil
+}
+
+func (s *Storage) MemorizedRefreshTokenIfExpired(token string) {
+	claims, err := s.tm.ParseRefreshToken(token)
+	if err != nil {
+		return
+	}
+	s.expiredRT = append(s.expiredRT, expiredRefreshToken{
+		token:   token,
+		expired: claims.ExpiresAt,
+	})
+}
+
+func (s *Storage) IsRefreshTokenExpired(token string) bool {
+	claims, err := s.tm.ParseRefreshToken(token)
+	return err != nil || s.refreshTokenInArray(token) || claims.ExpiresAt <= time.Now().Unix()
+}
+
+func (s *Storage) refreshTokenInArray(token string) bool {
+	for _, refreshToken := range s.expiredRT {
+		if refreshToken.token == token {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Storage) CleanExpiredRefreshTokens() {
+	newArray := make([]expiredRefreshToken, len(s.expiredRT)/2)
+	for _, expiredToken := range s.expiredRT {
+		if expiredToken.expired > time.Now().Unix() {
+			s.expiredRT = append(s.expiredRT, expiredToken)
+		}
+	}
+	s.expiredRT = newArray
 }
