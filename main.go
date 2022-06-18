@@ -30,7 +30,7 @@ func main() {
 
 	pm := passwordmanager.BCryptPasswordManager{}
 	tm := tokenmanager.NewJWTTokenManager(config)
-	storage := memorystorage.NewStorage(&pm, config)
+	storage := memorystorage.NewStorage(&pm, config, tm)
 	storage.Init()
 	userCtrl := handlers.NewUserController(storage, tm, config)
 
