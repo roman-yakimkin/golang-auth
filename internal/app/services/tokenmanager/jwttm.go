@@ -8,17 +8,6 @@ import (
 	"time"
 )
 
-type AccessClaims struct {
-	jwt.StandardClaims
-	Username string
-	Roles    []string
-}
-
-type RefreshClaims struct {
-	jwt.StandardClaims
-	Username string
-}
-
 var JWTSecretKey []byte = []byte("secret")
 
 type JWTTokenManager struct {
@@ -56,7 +45,7 @@ func (t *JWTTokenManager) GenerateRefreshToken(u *models.User) (string, error) {
 	return tokenString, err
 }
 
-func (t *JWTTokenManager) ParseAccessToken(token string) (string, error) {
+func (t *JWTTokenManager) ParseAccessToken(token string) (*AccessClaims, error) {
 	tokenData, err := jwt.ParseWithClaims(token, &AccessClaims{}, func(jt *jwt.Token) (interface{}, error) {
 		if _, ok := jt.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", jt.Header["alg"])
@@ -64,15 +53,15 @@ func (t *JWTTokenManager) ParseAccessToken(token string) (string, error) {
 		return JWTSecretKey, nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if claims, ok := tokenData.Claims.(*AccessClaims); ok && tokenData.Valid {
-		return claims.Username, nil
+		return claims, nil
 	}
-	return "", ErrInvalidAccessToken
+	return nil, ErrInvalidAccessToken
 }
 
-func (t *JWTTokenManager) ParseRefreshToken(token string) (string, error) {
+func (t *JWTTokenManager) ParseRefreshToken(token string) (*RefreshClaims, error) {
 	tokenData, err := jwt.ParseWithClaims(token, &RefreshClaims{}, func(jt *jwt.Token) (interface{}, error) {
 		if _, ok := jt.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", jt.Header["alg"])
@@ -80,10 +69,10 @@ func (t *JWTTokenManager) ParseRefreshToken(token string) (string, error) {
 		return JWTSecretKey, nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if claims, ok := tokenData.Claims.(*RefreshClaims); ok && tokenData.Valid {
-		return claims.Username, nil
+		return claims, nil
 	}
-	return "", ErrInvalidAccessToken
+	return nil, ErrInvalidAccessToken
 }

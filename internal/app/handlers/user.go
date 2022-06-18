@@ -138,6 +138,11 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
+	refreshToken, _ := r.Cookie("refresh_token")
+	refreshTokenStr := refreshToken.Value
+	if refreshTokenStr != "" {
+		c.storage.MemorizeRefreshTokenIfExpired(refreshTokenStr)
+	}
 	var successResponse = SuccessResponse{
 		Code:    http.StatusOK,
 		Message: "You have logged out",
@@ -150,6 +155,7 @@ func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	doRedirect(w, r)
 	w.Write(successJSONResponse)
@@ -177,7 +183,7 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	userName, err := c.tm.ParseRefreshToken(refreshToken.Value)
+	claims, err := c.tm.ParseRefreshToken(refreshToken.Value)
 	if err != nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusInternalServerError,
@@ -185,7 +191,7 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	userInfo := c.storage.FindUserByName(userName)
+	userInfo := c.storage.FindUserByName(claims.Username)
 	if userInfo == nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusInternalServerError,
