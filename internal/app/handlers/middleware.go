@@ -27,7 +27,7 @@ func NewMiddleware(tm tokenmanager.TokenManager) *Middleware {
 
 func (mw *Middleware) Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !slices.Contains(noLoggingMiddlewarePaths, r.RequestURI) {
+		if !slices.Contains(noLoggingMiddlewarePaths, r.URL.Path) {
 			accessCookie, err := r.Cookie("access_token")
 			if err != nil {
 				returnErrorResponse(w, r, ErrorResponse{
