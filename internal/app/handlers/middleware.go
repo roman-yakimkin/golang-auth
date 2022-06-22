@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"auth/internal/app/services/tokenmanager"
+	"auth/internal/app/errors"
+	"auth/internal/app/interfaces"
 	"context"
 	"golang.org/x/exp/slices"
 	"net/http"
@@ -16,10 +17,10 @@ type MiddlewareProfile struct {
 }
 
 type Middleware struct {
-	tm tokenmanager.TokenManager
+	tm interfaces.TokenManager
 }
 
-func NewMiddleware(tm tokenmanager.TokenManager) *Middleware {
+func NewMiddleware(tm interfaces.TokenManager) *Middleware {
 	return &Middleware{
 		tm: tm,
 	}
@@ -47,7 +48,7 @@ func (mw *Middleware) Logging(next http.Handler) http.Handler {
 			if claims.Username == "" {
 				returnErrorResponse(w, r, ErrorResponse{
 					Code:    http.StatusUnauthorized,
-					Message: tokenmanager.ErrInvalidUserName.Error(),
+					Message: errors.ErrInvalidUserName.Error(),
 				})
 				return
 			}
