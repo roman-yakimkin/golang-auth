@@ -1,26 +1,27 @@
 package handlers
 
 import (
+	"auth/internal/app/errors"
+	"auth/internal/app/interfaces"
 	"auth/internal/app/models"
 	"auth/internal/app/services/configmanager"
 	"auth/internal/app/services/tokenmanager"
-	"auth/internal/app/storage"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 )
 
 type UserController struct {
-	storage storage.Storage
-	tm      tokenmanager.TokenManager
-	config  *configmanager.Config
+	store  interfaces.Store
+	tm     interfaces.TokenManager
+	config *configmanager.Config
 }
 
-func NewUserController(storage storage.Storage, tm tokenmanager.TokenManager, cm *configmanager.Config) *UserController {
+func NewUserController(store interfaces.Store, tm interfaces.TokenManager, cm *configmanager.Config) *UserController {
 	return &UserController{
-		storage: storage,
-		tm:      tm,
-		config:  cm,
+		store:  store,
+		tm:     tm,
+		config: cm,
 	}
 }
 
@@ -40,11 +41,11 @@ func (c *UserController) cleanTokenCookies(w *http.ResponseWriter) {
 func (c *UserController) generateTokens(u *models.User) (string, string, error) {
 	accessToken, _ := c.tm.GenerateAccessToken(u)
 	if accessToken == "" {
-		return "", "", tokenmanager.ErrInvalidAccessToken
+		return "", "", errors.ErrInvalidAccessToken
 	}
 	refreshToken, _ := c.tm.GenerateRefreshToken(u)
 	if refreshToken == "" {
-		return "", "", tokenmanager.ErrInvalidRefreshToken
+		return "", "", errors.ErrInvalidRefreshToken
 	}
 	return accessToken, refreshToken, nil
 }
@@ -83,8 +84,8 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user := c.storage.FindUserByNameAndPassword(login, password)
-	if user == nil {
+	user, err := c.store.User().GetByNameAndPassword(login, password)
+	if err != nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusUnauthorized,
 			Message: "Incorrect login or password",
@@ -143,7 +144,7 @@ func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
 	refreshToken, _ := r.Cookie("refresh_token")
 	refreshTokenStr := refreshToken.Value
 	if refreshTokenStr != "" {
-		c.storage.MemorizeRefreshTokenIfExpired(refreshTokenStr)
+		c.store.ExpiredRT().MemorizeIfExpired(refreshTokenStr)
 	}
 	var successResponse = SuccessResponse{
 		Code:    http.StatusOK,
@@ -193,11 +194,11 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 		})
 		return
 	}
-	userInfo := c.storage.FindUserByName(claims.Username)
-	if userInfo == nil {
+	userInfo, err := c.store.User().GetByName(claims.Username)
+	if err != nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "User not found",
+			Message: err.Error(),
 		})
 		return
 	}
@@ -238,11 +239,11 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 
 func (c *UserController) UserInfo(w http.ResponseWriter, r *http.Request) {
 	profile := r.Context().Value("profile").(MiddlewareProfile)
-	userInfo := c.storage.FindUserByName(profile.UserName)
-	if userInfo == nil {
+	userInfo, err := c.store.User().GetByName(profile.UserName)
+	if err != nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "User not found",
+			Message: err.Error(),
 		})
 		return
 	}

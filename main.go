@@ -2,10 +2,11 @@ package main
 
 import (
 	"auth/internal/app/handlers"
+	repomemory "auth/internal/app/repositories/memory"
 	"auth/internal/app/services/configmanager"
 	"auth/internal/app/services/passwordmanager"
 	"auth/internal/app/services/tokenmanager"
-	"auth/internal/app/storage/memorystorage"
+	"auth/internal/app/store/memory"
 	"flag"
 	"github.com/gorilla/mux"
 	"log"
@@ -30,9 +31,11 @@ func main() {
 
 	pm := passwordmanager.BCryptPasswordManager{}
 	tm := tokenmanager.NewJWTTokenManager(config)
-	storage := memorystorage.NewStorage(&pm, config, tm)
-	storage.Init()
-	userCtrl := handlers.NewUserController(storage, tm, config)
+	userRepo := repomemory.NewUserRepo(&pm, config)
+	roleRepo := repomemory.NewRoleRepo(config)
+	ertRepo := repomemory.NewExpiredrefreshTokenRepo()
+	store := memory.NewStore(userRepo, roleRepo, ertRepo, &pm, config, tm)
+	userCtrl := handlers.NewUserController(store, tm, config)
 
 	mw := handlers.NewMiddleware(tm)
 
