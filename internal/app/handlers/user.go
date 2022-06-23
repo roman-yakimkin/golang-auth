@@ -128,13 +128,11 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		Name:    "access_token",
 		Value:   accessTokenString,
 		Expires: tokenmanager.GetExpireTime(c.config.JWTAccessTokenLifeTime),
-		Path:    "/",
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:    "refresh_token",
 		Value:   refreshTokenString,
 		Expires: tokenmanager.GetExpireTime(c.config.JWTRefreshTokenLifeTime),
-		Path:    "/",
 	})
 	doRedirect(w, r)
 	w.Write(successJSONResponse)

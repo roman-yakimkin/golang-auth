@@ -4,12 +4,13 @@ import (
 	"auth/internal/app/errors"
 	"auth/internal/app/interfaces"
 	"context"
-	"golang.org/x/exp/slices"
+	"fmt"
 	"net/http"
+	"regexp"
 )
 
 var noLoggingMiddlewarePaths = []string{
-	"/login",
+	"^/login(?)?(.)*$",
 }
 
 type MiddlewareProfile struct {
@@ -28,34 +29,41 @@ func NewMiddleware(tm interfaces.TokenManager) *Middleware {
 
 func (mw *Middleware) Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !slices.Contains(noLoggingMiddlewarePaths, r.URL.Path) {
-			accessCookie, err := r.Cookie("access_token")
+		for _, path := range noLoggingMiddlewarePaths {
+			ok, err := regexp.Match(path, []byte(r.URL.Path))
 			if err != nil {
-				returnErrorResponse(w, r, ErrorResponse{
-					Code:    http.StatusUnauthorized,
-					Message: err.Error(),
-				})
-				return
+				fmt.Println(err)
 			}
-			claims, err := mw.tm.ParseAccessToken(accessCookie.Value)
-			if err != nil {
-				returnErrorResponse(w, r, ErrorResponse{
-					Code:    http.StatusUnauthorized,
-					Message: err.Error(),
-				})
-				return
+			if !ok {
+				accessCookie, err := r.Cookie("access_token")
+				if err != nil {
+					returnErrorResponse(w, r, ErrorResponse{
+						Code:    http.StatusUnauthorized,
+						Message: err.Error(),
+					})
+					return
+				}
+				claims, err := mw.tm.ParseAccessToken(accessCookie.Value)
+				if err != nil {
+					returnErrorResponse(w, r, ErrorResponse{
+						Code:    http.StatusUnauthorized,
+						Message: err.Error(),
+					})
+					return
+				}
+				if claims.Username == "" {
+					returnErrorResponse(w, r, ErrorResponse{
+						Code:    http.StatusUnauthorized,
+						Message: errors.ErrInvalidUserName.Error(),
+					})
+					return
+				}
+				ctx := r.Context()
+				r = r.WithContext(context.WithValue(ctx, "profile", MiddlewareProfile{
+					UserName: claims.Username,
+				}))
+				break
 			}
-			if claims.Username == "" {
-				returnErrorResponse(w, r, ErrorResponse{
-					Code:    http.StatusUnauthorized,
-					Message: errors.ErrInvalidUserName.Error(),
-				})
-				return
-			}
-			ctx := r.Context()
-			r = r.WithContext(context.WithValue(ctx, "profile", MiddlewareProfile{
-				UserName: claims.Username,
-			}))
 		}
 		next.ServeHTTP(w, r)
 	})
