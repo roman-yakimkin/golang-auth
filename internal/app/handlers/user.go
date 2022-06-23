@@ -60,7 +60,10 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	var u map[string]string
+	var u struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}
 	err = json.Unmarshal(body, &u)
 	if err != nil {
 		returnErrorResponse(w, r, ErrorResponse{
@@ -68,23 +71,7 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 			Message: err.Error(),
 		})
 	}
-	login, ok := u["login"]
-	if !ok {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "The login field not found",
-		})
-		return
-	}
-	password, ok := u["password"]
-	if !ok {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: "The password field not found",
-		})
-		return
-	}
-	user, err := c.store.User().GetByNameAndPassword(login, password)
+	user, err := c.store.User().GetByNameAndPassword(u.Login, u.Password)
 	if err != nil {
 		returnErrorResponse(w, r, ErrorResponse{
 			Code:    http.StatusUnauthorized,
