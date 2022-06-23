@@ -1,6 +1,8 @@
 package tokenmanager
 
 import (
+	"auth/internal/app/errors"
+	"auth/internal/app/interfaces"
 	"auth/internal/app/models"
 	"auth/internal/app/services/configmanager"
 	"fmt"
@@ -21,7 +23,7 @@ func NewJWTTokenManager(config *configmanager.Config) *JWTTokenManager {
 }
 
 func (t *JWTTokenManager) GenerateAccessToken(u *models.User) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, AccessClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, interfaces.AccessClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: GetExpireTime(t.config.JWTAccessTokenLifeTime).Unix(),
 			IssuedAt:  time.Now().Unix(),
@@ -34,7 +36,7 @@ func (t *JWTTokenManager) GenerateAccessToken(u *models.User) (string, error) {
 }
 
 func (t *JWTTokenManager) GenerateRefreshToken(u *models.User) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, RefreshClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, interfaces.RefreshClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: GetExpireTime(t.config.JWTRefreshTokenLifeTime).Unix(),
 			IssuedAt:  time.Now().Unix(),
@@ -45,8 +47,8 @@ func (t *JWTTokenManager) GenerateRefreshToken(u *models.User) (string, error) {
 	return tokenString, err
 }
 
-func (t *JWTTokenManager) ParseAccessToken(token string) (*AccessClaims, error) {
-	tokenData, err := jwt.ParseWithClaims(token, &AccessClaims{}, func(jt *jwt.Token) (interface{}, error) {
+func (t *JWTTokenManager) ParseAccessToken(token string) (*interfaces.AccessClaims, error) {
+	tokenData, err := jwt.ParseWithClaims(token, &interfaces.AccessClaims{}, func(jt *jwt.Token) (interface{}, error) {
 		if _, ok := jt.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", jt.Header["alg"])
 		}
@@ -55,14 +57,14 @@ func (t *JWTTokenManager) ParseAccessToken(token string) (*AccessClaims, error) 
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := tokenData.Claims.(*AccessClaims); ok && tokenData.Valid {
+	if claims, ok := tokenData.Claims.(*interfaces.AccessClaims); ok && tokenData.Valid {
 		return claims, nil
 	}
-	return nil, ErrInvalidAccessToken
+	return nil, errors.ErrInvalidAccessToken
 }
 
-func (t *JWTTokenManager) ParseRefreshToken(token string) (*RefreshClaims, error) {
-	tokenData, err := jwt.ParseWithClaims(token, &RefreshClaims{}, func(jt *jwt.Token) (interface{}, error) {
+func (t *JWTTokenManager) ParseRefreshToken(token string) (*interfaces.RefreshClaims, error) {
+	tokenData, err := jwt.ParseWithClaims(token, &interfaces.RefreshClaims{}, func(jt *jwt.Token) (interface{}, error) {
 		if _, ok := jt.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", jt.Header["alg"])
 		}
@@ -71,8 +73,8 @@ func (t *JWTTokenManager) ParseRefreshToken(token string) (*RefreshClaims, error
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := tokenData.Claims.(*RefreshClaims); ok && tokenData.Valid {
+	if claims, ok := tokenData.Claims.(*interfaces.RefreshClaims); ok && tokenData.Valid {
 		return claims, nil
 	}
-	return nil, ErrInvalidAccessToken
+	return nil, errors.ErrInvalidAccessToken
 }
