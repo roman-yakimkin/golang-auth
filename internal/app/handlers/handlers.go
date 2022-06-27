@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/rs/zerolog/log"
 )
 
 type ErrorResponse struct {
@@ -28,9 +30,12 @@ type UserInfoResponse struct {
 func returnErrorResponse(w http.ResponseWriter, r *http.Request, errorMsg ErrorResponse) {
 	httpResponse := &ErrorResponse{Code: errorMsg.Code, Message: errorMsg.Message}
 	jsonResponse, err := json.Marshal(httpResponse)
+
 	if err != nil {
+		log.Error().Err(err).Msg("Error while Unmarshal")
 		panic(err)
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(errorMsg.Code)
 	w.Write(jsonResponse)

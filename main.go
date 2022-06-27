@@ -8,9 +8,12 @@ import (
 	"auth/internal/app/services/tokenmanager"
 	"auth/internal/app/store/memory"
 	"flag"
-	"github.com/gorilla/mux"
-	"log"
 	"net/http"
+	"net/http/pprof"
+
+	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -22,11 +25,12 @@ func init() {
 }
 
 func main() {
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	flag.Parse()
 	config := configmanager.NewConfig()
 	err := config.Init(configPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 
 	pm := passwordmanager.BCryptPasswordManager{}
@@ -47,8 +51,18 @@ func main() {
 	router.HandleFunc("/refresh-token", userCtrl.UserRefreshToken).Methods("POST")
 	router.HandleFunc("/i", userCtrl.UserInfo).Methods("GET")
 
+	router.HandleFunc("/pprof/", pprof.Index)
+	router.HandleFunc("/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/pprof/profile", pprof.Profile)
+	router.HandleFunc("/pprof/symbol", pprof.Symbol)
+	router.HandleFunc("/pprof/trace", pprof.Trace)
+	router.Handle("/pprof/block", pprof.Handler("block"))
+	router.Handle("/pprof/heap", pprof.Handler("heap"))
+	router.Handle("/pprof/goroutine", pprof.Handler("goroutine"))
+	router.Handle("/pprof/threadcreate", pprof.Handler("threadcreate"))
+
 	router.Use(mw.Logging)
 
 	err = http.ListenAndServe(config.BindAddr, router)
-	log.Fatal(err)
+	log.Fatal().Err(err)
 }
