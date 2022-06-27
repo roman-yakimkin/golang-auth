@@ -36,4 +36,11 @@ users:
     password: $2a$10$pmoTf7xqk9Ik0FF4FiDq6uZzYpzCXHy98.mJokbejSmiypLYFLs3C
     roles:
       - authenticated
+  -
+    id: 4
+    username: test123
+    password: $2a$10$fvuY45K46bV5iWinqi1yg.N/uQUsTYo8Y6MgaF2KYZ5QFhNCZiT8a
+    roles:
+      - task_creator
+      - authenticated
 
