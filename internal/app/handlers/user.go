@@ -61,11 +61,7 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 
 	defer r.Body.Close()
 
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Error().Err(err).Msg("Error while request ReadAll")
 		return
 	}
@@ -77,51 +73,27 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal(body, &u)
 
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Error().Err(err).Msg("Error while Unmarshal")
+		return
 	}
 
 	user, err := c.store.User().GetByNameAndPassword(u.Login, u.Password)
-
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusUnauthorized,
-			Message: "Incorrect login or password",
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusUnauthorized, nil, "Incorrect login or password") {
 		log.Info().Err(err).Msg(fmt.Sprintf("Incorrect login or password at %s user", u.Login))
-
 		return
 	}
 
 	accessTokenString, err := c.tm.GenerateAccessToken(user)
-
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Error().Err(err).Msg("Error while GenerateAccessToken")
-
 		return
 	}
 
 	refreshTokenString, err := c.tm.GenerateRefreshToken(user)
 
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Error().Err(err).Msg("Error while GenerateRefreshToken")
-
 		return
 	}
 
@@ -136,13 +108,9 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 
 	successJSONResponse, err := json.Marshal(successResponse)
 
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Error().Err(err).Msg("Error while Marshal")
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -166,6 +134,8 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
+	profile := r.Context().Value("profile").(MiddlewareProfile)
+
 	refreshToken, _ := r.Cookie("refresh_token")
 	refreshTokenStr := refreshToken.Value
 
@@ -179,11 +149,7 @@ func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	successJSONResponse, err := json.Marshal(successResponse)
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Error().Err(err).Msg("Error while Marshal")
 		return
 	}
@@ -192,78 +158,42 @@ func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
 	doRedirect(w, r)
 	w.Write(successJSONResponse)
 
-	log.Info().Msg("User logged out successfully")
+	log.Info().Msg(fmt.Sprintf("User %s logged out successfully", profile.UserName))
 }
 
 func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request) {
-	var errorResponse = ErrorResponse{
-		Code:    http.StatusInternalServerError,
-		Message: "Internal Server Error",
-	}
-
 	refreshToken, err := r.Cookie("refresh_token")
-
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusUnauthorized,
-			Message: "User not authorized",
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusUnauthorized, nil, "User not authorized") {
 		log.Debug().Err(err).Msg("No refresh_token cookie")
-
 		return
 	}
 
 	err = refreshToken.Valid()
 
-	if err != nil {
+	if returnErrorResponse(err != nil, w, r, http.StatusUnauthorized, nil, "User not authorized") {
 		c.cleanTokenCookies(&w)
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusUnauthorized,
-			Message: "User not authorized",
-		})
-
 		log.Debug().Err(err).Msg("Invalid refresh_token")
-
 		return
 	}
 
 	claims, err := c.tm.ParseRefreshToken(refreshToken.Value)
 
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Debug().Err(err).Msg("Unable to parse refresh_token")
-
 		return
 	}
 
 	userInfo, err := c.store.User().GetByName(claims.Username)
 
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Debug().Err(err).Msg("Unable to get user by name")
-
 		return
 	}
 
 	accessTokenString, refreshTokenString, err := c.generateTokens(userInfo)
 
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusUnauthorized,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusUnauthorized, err, "") {
 		log.Error().Err(err).Msg("Error while generating tokens")
-
 		return
 	}
 
@@ -278,9 +208,9 @@ func (c *UserController) UserRefreshToken(w http.ResponseWriter, r *http.Request
 
 	successJSONResponse, err := json.Marshal(successResponse)
 
-	if err != nil {
-		returnErrorResponse(w, r, errorResponse)
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Error().Err(err).Msg("Error while Marshal")
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -306,14 +236,8 @@ func (c *UserController) UserInfo(w http.ResponseWriter, r *http.Request) {
 	profile := r.Context().Value("profile").(MiddlewareProfile)
 	userInfo, err := c.store.User().GetByName(profile.UserName)
 
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Debug().Err(err).Msg("Unable to get user by name")
-
 		return
 	}
 
@@ -328,14 +252,8 @@ func (c *UserController) UserInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	successJSONResponse, err := json.Marshal(successResponse)
-	if err != nil {
-		returnErrorResponse(w, r, ErrorResponse{
-			Code:    http.StatusInternalServerError,
-			Message: err.Error(),
-		})
-
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
 		log.Error().Err(err).Msg("Error while Marshal")
-
 		return
 	}
 

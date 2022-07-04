@@ -27,16 +27,51 @@ type UserInfoResponse struct {
 	Username string `json:"username"`
 }
 
-func returnErrorResponse(w http.ResponseWriter, r *http.Request, errorMsg ErrorResponse) {
-	httpResponse := &ErrorResponse{Code: errorMsg.Code, Message: errorMsg.Message}
-	jsonResponse, err := json.Marshal(httpResponse)
+//func returnErrorResponse(w http.ResponseWriter, r *http.Request, errorMsg ErrorResponse) {
+//	httpResponse := &ErrorResponse{Code: errorMsg.Code, Message: errorMsg.Message}
+//	jsonResponse, err := json.Marshal(httpResponse)
+//
+//	if err != nil {
+//		log.Error().Err(err).Msg("Error while Unmarshal")
+//		panic(err)
+//	}
+//
+//	w.Header().Set("Content-Type", "application/json")
+//	w.WriteHeader(errorMsg.Code)
+//	w.Write(jsonResponse)
+//}
 
-	if err != nil {
-		log.Error().Err(err).Msg("Error while Unmarshal")
-		panic(err)
+func returnErrorResponse(isErrorResponse bool, w http.ResponseWriter, r *http.Request, code int, err error, strMsg string) bool {
+	if isErrorResponse {
+		message := ""
+		if strMsg != "" {
+			message = strMsg
+		} else if err != nil {
+			message = err.Error()
+		}
+		httpResponse := &ErrorResponse{Code: code, Message: message}
+		jsonResponse, err := json.Marshal(httpResponse)
+		if err != nil {
+			log.Error().Err(err).Msg("Error while Unmarshal")
+			panic(err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(code)
+		w.Write(jsonResponse)
 	}
+	return isErrorResponse
+}
 
+func returnSuccessResponse(w http.ResponseWriter, r *http.Request, message string, response interface{}) {
+	var successResponse = SuccessResponse{
+		Code:     http.StatusOK,
+		Response: response,
+	}
+	successJSONResponse, err := json.Marshal(successResponse)
+	if returnErrorResponse(err != nil, w, r, http.StatusInternalServerError, err, "") {
+		log.Error().Err(err).Msg("Error while Marshal")
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(errorMsg.Code)
-	w.Write(jsonResponse)
+	w.Write(successJSONResponse)
 }
