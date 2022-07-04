@@ -39,28 +39,15 @@ func (mw *Middleware) Logging(next http.Handler) http.Handler {
 
 			if !ok {
 				accessCookie, err := r.Cookie("access_token")
-				if err != nil {
-					returnErrorResponse(w, r, ErrorResponse{
-						Code:    http.StatusUnauthorized,
-						Message: err.Error(),
-					})
+				if returnErrorResponse(err != nil, w, r, http.StatusUnauthorized, err, "") {
 					return
 				}
 
 				claims, err := mw.tm.ParseAccessToken(accessCookie.Value)
-				if err != nil {
-					returnErrorResponse(w, r, ErrorResponse{
-						Code:    http.StatusUnauthorized,
-						Message: err.Error(),
-					})
+				if returnErrorResponse(err != nil, w, r, http.StatusUnauthorized, err, "") {
 					return
 				}
-
-				if claims.Username == "" {
-					returnErrorResponse(w, r, ErrorResponse{
-						Code:    http.StatusUnauthorized,
-						Message: errors.ErrInvalidUserName.Error(),
-					})
+				if returnErrorResponse(claims.Username == "", w, r, http.StatusUnauthorized, errors.ErrInvalidUserName, "") {
 					return
 				}
 
