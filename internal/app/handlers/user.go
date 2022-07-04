@@ -154,6 +154,7 @@ func (c *UserController) UserLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	c.cleanTokenCookies(&w)
 	w.Header().Set("Content-Type", "application/json")
 	doRedirect(w, r)
 	w.Write(successJSONResponse)
