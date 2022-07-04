@@ -5,22 +5,24 @@ import (
 	"auth/internal/app/interfaces"
 	"auth/internal/app/models"
 	"auth/internal/app/services/configmanager"
+	"strconv"
 )
 
 type UserRepo struct {
-	users  map[int]models.User
+	users  map[string]models.User
 	pm     interfaces.PasswordManager
 	config *configmanager.Config
 }
 
 func NewUserRepo(pm interfaces.PasswordManager, config *configmanager.Config) *UserRepo {
-	users := make(map[int]models.User)
-	for _, user := range config.Users {
+	users := make(map[string]models.User)
+
+	for i, user := range config.Users {
 		var roles []string
 		for _, role := range user["roles"].([]interface{}) {
 			roles = append(roles, role.(string))
 		}
-		key := user["id"].(int)
+		key := strconv.Itoa(i + 1)
 		users[key] = models.User{
 			ID:       key,
 			Username: user["username"].(string),
@@ -37,7 +39,7 @@ func NewUserRepo(pm interfaces.PasswordManager, config *configmanager.Config) *U
 	return &repo
 }
 
-func (r *UserRepo) GetByID(uid int) (*models.User, error) {
+func (r *UserRepo) GetByID(uid string) (*models.User, error) {
 	u, ok := r.users[uid]
 	if !ok {
 		return nil, errors.ErrUserNotFound

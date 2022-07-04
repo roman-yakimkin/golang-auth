@@ -2,11 +2,12 @@ package main
 
 import (
 	"auth/internal/app/handlers"
-	repomemory "auth/internal/app/repositories/memory"
+	"auth/internal/app/repositories/mongo"
 	"auth/internal/app/services/configmanager"
+	"auth/internal/app/services/dbclient"
 	"auth/internal/app/services/passwordmanager"
 	"auth/internal/app/services/tokenmanager"
-	"auth/internal/app/store/memory"
+	mongo2 "auth/internal/app/store/mongo"
 	"flag"
 	"net/http"
 	"net/http/pprof"
@@ -35,10 +36,11 @@ func main() {
 
 	pm := passwordmanager.BCryptPasswordManager{}
 	tm := tokenmanager.NewJWTTokenManager(config)
-	userRepo := repomemory.NewUserRepo(&pm, config)
-	roleRepo := repomemory.NewRoleRepo(config)
-	ertRepo := repomemory.NewExpiredrefreshTokenRepo()
-	store := memory.NewStore(userRepo, roleRepo, ertRepo, &pm, config, tm)
+	db := dbclient.NewMongoDBClient(config)
+	userRepo := mongo.NewUserRepo(&pm, config, db)
+	roleRepo := mongo.NewRoleRepo(config, db)
+	ertRepo := mongo.NewExpiredRefreshTokenRepo(tm, db)
+	store := mongo2.NewStore(userRepo, roleRepo, ertRepo, &pm, config, tm, db)
 	userCtrl := handlers.NewUserController(store, tm, config)
 
 	mw := handlers.NewMiddleware(tm)

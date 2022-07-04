@@ -1,43 +1,41 @@
 bind_addr: ":8001"
 
 jwt_secret_key: "sdvm-vppparv324-gdgmfopmgphmspsfvs3vddf5vdbdnfhmd4"
-jwt_access_token_life_time: 5
+jwt_access_token_life_time: 60
 jwt_refresh_token_life_time: 3600
+
+mongodb_connection_string: "mongodb://localhost:27017"
 
 roles:
   -
-    id: authenticated
-    name: Authenticated user
+    name: authenticated
+    desc: Authenticated user
   -
-    id: task_creator
-    name: Task creator
+    name: task_creator
+    desc: Task creator
   -
-    id: analyst
-    name: Analyst
+    name: analyst
+    desc: Analyst
 
 users:
   -
-    id: 1
     username: user1
     password: $2a$10$OgcMhbZH5BX5cXssxeGz5uNbjLSStpp76lnUMQqLbV8bZwGzOm/va
     roles:
       - task_creator
       - authenticated
   -
-    id: 2
     username: user2
     password: $2a$10$fWVsdKGXuOxMzL0tahrd2./BjJHasZ7QvdGJWjtpbV0aUbswVmdhC
     roles:
       - analyst
       - authenticated
   -
-    id: 3
     username: user3
     password: $2a$10$pmoTf7xqk9Ik0FF4FiDq6uZzYpzCXHy98.mJokbejSmiypLYFLs3C
     roles:
       - authenticated
   -
-    id: 4
     username: test123
     password: $2a$10$fvuY45K46bV5iWinqi1yg.N/uQUsTYo8Y6MgaF2KYZ5QFhNCZiT8a
     roles:
