@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package api;
+
+option go_package = "/;api";
+
+service Validator {
+  rpc Validate(ValidateRequest) returns (ValidateResponse) {}
+}
+
+message ValidateRequest {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message ValidateResponse {
+  string user_id = 1;
+  repeated string roles = 2;
+  string access_token = 3;
+  string refresh_token = 4;
+}
+
