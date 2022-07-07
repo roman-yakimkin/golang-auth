@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	BindAddr                string `yaml:"bind_addr"`
+	GRPCBindAddr            string `yaml:"grpc_bind_addr"`
 	JWTSecretKey            string `yaml:"jwt_secret_key"`
 	JWTAccessTokenLifeTime  int    `yaml:"jwt_access_token_life_time"`
 	JWTRefreshTokenLifeTime int    `yaml:"jwt_refresh_token_life_time"`

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"auth/internal/app/grpc/api"
+	"auth/internal/app/grpc/server"
 	"auth/internal/app/handlers"
 	"auth/internal/app/repositories/mongo"
 	"auth/internal/app/services/configmanager"
@@ -9,6 +11,8 @@ import (
 	"auth/internal/app/services/tokenmanager"
 	mongo2 "auth/internal/app/store/mongo"
 	"flag"
+	"google.golang.org/grpc"
+	"net"
 	"net/http"
 	"net/http/pprof"
 
@@ -64,6 +68,19 @@ func main() {
 	router.Handle("/pprof/threadcreate", pprof.Handler("threadcreate"))
 
 	router.Use(mw.Logging)
+
+	go func() {
+		s := grpc.NewServer()
+		srv := server.NewGRPCServer(store, tm)
+		api.RegisterValidatorServer(s, srv)
+		l, err := net.Listen("tcp", config.GRPCBindAddr)
+		if err != nil {
+			log.Fatal().Err(err)
+		}
+		if err = s.Serve(l); err != nil {
+			log.Fatal().Err(err)
+		}
+	}()
 
 	err = http.ListenAndServe(config.BindAddr, router)
 	log.Fatal().Err(err)

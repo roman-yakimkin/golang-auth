@@ -1,5 +1,7 @@
 bind_addr: ":8001"
 
+grpc_bind_addr: ":50051"
+
 jwt_secret_key: "sdvm-vppparv324-gdgmfopmgphmspsfvs3vddf5vdbdnfhmd4"
 jwt_access_token_life_time: 60
 jwt_refresh_token_life_time: 3600
