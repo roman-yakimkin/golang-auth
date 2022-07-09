@@ -116,15 +116,17 @@ func (c *UserController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	http.SetCookie(w, &http.Cookie{
-		Name:    "access_token",
-		Value:   accessTokenString,
-		Expires: tokenmanager.GetExpireTime(c.config.JWTAccessTokenLifeTime),
+		Name:     "access_token",
+		Value:    accessTokenString,
+		Expires:  tokenmanager.GetExpireTime(c.config.JWTAccessTokenLifeTime),
+		SameSite: http.SameSiteNoneMode,
 	})
 
 	http.SetCookie(w, &http.Cookie{
-		Name:    "refresh_token",
-		Value:   refreshTokenString,
-		Expires: tokenmanager.GetExpireTime(c.config.JWTRefreshTokenLifeTime),
+		Name:     "refresh_token",
+		Value:    refreshTokenString,
+		Expires:  tokenmanager.GetExpireTime(c.config.JWTRefreshTokenLifeTime),
+		SameSite: http.SameSiteNoneMode,
 	})
 
 	doRedirect(w, r)
