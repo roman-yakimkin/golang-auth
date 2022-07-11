@@ -4,9 +4,10 @@ import (
 	"auth/internal/app/errors"
 	"auth/internal/app/interfaces"
 	"context"
-	"fmt"
 	"net/http"
 	"regexp"
+
+	"github.com/rs/zerolog/log"
 )
 
 var noLoggingMiddlewarePaths = []string{
@@ -31,33 +32,25 @@ func (mw *Middleware) Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, path := range noLoggingMiddlewarePaths {
 			ok, err := regexp.Match(path, []byte(r.URL.Path))
+
 			if err != nil {
-				fmt.Println(err)
+				log.Print(err)
 			}
+
 			if !ok {
 				accessCookie, err := r.Cookie("access_token")
-				if err != nil {
-					returnErrorResponse(w, r, ErrorResponse{
-						Code:    http.StatusUnauthorized,
-						Message: err.Error(),
-					})
+				if returnErrorResponse(err != nil, w, r, http.StatusUnauthorized, err, "") {
 					return
 				}
+
 				claims, err := mw.tm.ParseAccessToken(accessCookie.Value)
-				if err != nil {
-					returnErrorResponse(w, r, ErrorResponse{
-						Code:    http.StatusUnauthorized,
-						Message: err.Error(),
-					})
+				if returnErrorResponse(err != nil, w, r, http.StatusUnauthorized, err, "") {
 					return
 				}
-				if claims.Username == "" {
-					returnErrorResponse(w, r, ErrorResponse{
-						Code:    http.StatusUnauthorized,
-						Message: errors.ErrInvalidUserName.Error(),
-					})
+				if returnErrorResponse(claims.Username == "", w, r, http.StatusUnauthorized, errors.ErrInvalidUserName, "") {
 					return
 				}
+
 				ctx := r.Context()
 				r = r.WithContext(context.WithValue(ctx, "profile", MiddlewareProfile{
 					UserName: claims.Username,

@@ -11,8 +11,10 @@ type ExpiredRefreshTokenRepo struct {
 	tm     interfaces.TokenManager
 }
 
-func NewExpiredrefreshTokenRepo() *ExpiredRefreshTokenRepo {
-	return &ExpiredRefreshTokenRepo{}
+func NewExpiredRefreshTokenRepo(tm interfaces.TokenManager) *ExpiredRefreshTokenRepo {
+	return &ExpiredRefreshTokenRepo{
+		tm: tm,
+	}
 }
 
 func (r *ExpiredRefreshTokenRepo) MemorizeIfExpired(token string) error {
